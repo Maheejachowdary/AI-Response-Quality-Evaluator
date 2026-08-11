@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Response Quality Evaluator</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+    <header class="masthead">
+        <h1>AI Response Quality Evaluator</h1>
+        <p class="subtitle">Multi-agent evaluation &middot; Relevance &middot; Accuracy &middot; Completeness &middot; Hallucination &middot; Weighted Verdict</p>
+    </header>
+
+    <nav class="tabs">
+        <a href="/" class="tab active">Single Evaluation</a>
+        <a href="/batch" class="tab">Batch (CSV)</a>
+        <a href="/dashboard" class="tab">Dashboard</a>
+    </nav>
+
+    <form method="POST" action="/evaluate" class="eval-form">
+        <label for="model_name">AI System / Model Name <span class="opt">(e.g. Gemini, GPT-4, Claude)</span></label>
+        <input type="text" id="model_name" name="model_name" value="{{ model_name or '' }}" placeholder="Which AI produced this response?">
+
+        <label for="question">Question</label>
+        <textarea id="question" name="question" rows="2" required>{{ question or "" }}</textarea>
+
+        <label for="response">AI Response</label>
+        <textarea id="response" name="response" rows="5" required>{{ response or "" }}</textarea>
+
+        <label for="reference">Reference Answer <span class="opt">(optional)</span></label>
+        <textarea id="reference" name="reference" rows="3">{{ reference or "" }}</textarea>
+
+        <button type="submit">Evaluate response</button>
+    </form>
+
+    {% if results %}
+    <section class="results">
+        <div class="verdict-panel verdict-{{ results.verdict | lower | replace(' ', '-') }}">
+            <div class="verdict-score">
+                <span class="score-num">{{ "%.2f"|format(results.overall_score) }}</span>
+                <span class="score-den">/10</span>
+            </div>
+            <div class="verdict-meta">
+                <span class="verdict-label">{{ results.verdict }}</span>
+                <p class="verdict-reasoning">{{ results.summary }}</p>
+            </div>
+        </div>
+
+        <div class="dimensions">
+            <div class="dim">
+                <div class="dim-head">
+                    <span class="dim-name">Relevance</span>
+                    <span class="dim-score">{{ results.relevance.score }}<small>/10</small></span>
+                </div>
+                <div class="bar"><span style="width: {{ (results.relevance.score * 10) }}%"></span></div>
+                <p class="dim-reason">{{ results.relevance.reason }}</p>
+            </div>
+
+            <div class="dim">
+                <div class="dim-head">
+                    <span class="dim-name">Accuracy</span>
+                    <span class="dim-score">{{ results.accuracy.score }}<small>/10</small></span>
+                </div>
+                <div class="bar"><span style="width: {{ (results.accuracy.score * 10) }}%"></span></div>
+                <p class="dim-reason">{{ results.accuracy.evidence }}</p>
+            </div>
+
+            <div class="dim">
+                <div class="dim-head">
+                    <span class="dim-name">Completeness</span>
+                    <span class="dim-score">{{ results.completeness.score }}<small>/10</small></span>
+                </div>
+                <div class="bar"><span style="width: {{ (results.completeness.score * 10) }}%"></span></div>
+                <p class="dim-reason">{{ results.completeness.reason }}</p>
+                {% if results.completeness.missing_aspects %}
+                <div class="findings">
+                    <span class="findings-label">Missing aspects</span>
+                    <ul>
+                        {% for aspect in results.completeness.missing_aspects %}
+                        <li>{{ aspect }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="dim">
+                <div class="dim-head">
+                    <span class="dim-name">Hallucination</span>
+                    <span class="dim-score">{{ results.hallucination.score }}<small>/10</small></span>
+                </div>
+                <div class="bar"><span style="width: {{ (results.hallucination.score * 10) }}%"></span></div>
+                <p class="dim-reason">{{ results.hallucination.reason }}</p>
+                {% if results.hallucination.unsupported_claims %}
+                <div class="findings findings-flag">
+                    <span class="findings-label">Flagged hallucinations</span>
+                    <ul>
+                        {% for claim in results.hallucination.unsupported_claims %}
+                        <li>{{ claim }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% else %}
+                <p class="clean">No unsupported claims detected.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="weights-note">
+            Weighted model &middot; Accuracy 35% &middot; Hallucination 30% &middot; Completeness 20% &middot; Relevance 15%
+            &middot; Pass &ge; 8.0 &middot; Needs Improvement 5.0&ndash;7.9 &middot; Fail &lt; 5.0
+        </p>
+    </section>
+    {% endif %}
+</div>
+</body>
+</html>

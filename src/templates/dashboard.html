@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard &middot; AI Response Quality Evaluator</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="container container-wide">
+    <header class="masthead">
+        <h1>Evaluation Dashboard</h1>
+        <p class="subtitle">Aggregated results across all stored evaluations</p>
+    </header>
+
+    <nav class="tabs">
+        <a href="/" class="tab">Single Evaluation</a>
+        <button type="submit">Apply</button>
+        <a href="/dashboard" class="clear-link">Clear</a>
+        <a href="/report" class="report-btn" id="reportBtn">Download PDF Report</a>
+    </nav>
+
+    <form method="GET" action="/dashboard" class="filters">
+        <div class="filter-item">
+            <label>Model</label>
+            <select name="model_name">
+                <option value="">All</option>
+                {% for m in stats.models %}
+                <option value="{{ m }}" {% if filters.model_name == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-item">
+            <label>Dataset</label>
+            <select name="dataset">
+                <option value="">All</option>
+                {% for d in stats.datasets %}
+                <option value="{{ d }}" {% if filters.dataset == d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-item">
+            <label>Mode</label>
+            <select name="mode">
+                <option value="">All</option>
+                <option value="single" {% if filters.mode == 'single' %}selected{% endif %}>Single</option>
+                <option value="batch" {% if filters.mode == 'batch' %}selected{% endif %}>Batch</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <label>Verdict</label>
+            <select name="verdict">
+                <option value="">All</option>
+                <option value="Pass" {% if filters.verdict == 'Pass' %}selected{% endif %}>Pass</option>
+                <option value="Needs Improvement" {% if filters.verdict == 'Needs Improvement' %}selected{% endif %}>Needs Improvement</option>
+                <option value="Fail" {% if filters.verdict == 'Fail' %}selected{% endif %}>Fail</option>
+            </select>
+        </div>
+        <button type="submit">Apply</button>
+        <a href="/dashboard" class="clear-link">Clear</a>
+    </form>
+
+    {% if stats.total == 0 %}
+    <p class="empty-note">No evaluations match these filters yet. Run some evaluations first.</p>
+    {% else %}
+
+    <div class="stat-cards">
+        <div class="stat-card"><span class="stat-num">{{ stats.total }}</span><span class="stat-label">Total Evaluations</span></div>
+        <div class="stat-card stat-pass"><span class="stat-num">{{ stats.pass_count }}</span><span class="stat-label">Pass</span></div>
+        <div class="stat-card stat-needs"><span class="stat-num">{{ stats.needs_count }}</span><span class="stat-label">Needs Improvement</span></div>
+        <div class="stat-card stat-fail"><span class="stat-num">{{ stats.fail_count }}</span><span class="stat-label">Fail</span></div>
+        <div class="stat-card"><span class="stat-num">{{ stats.hallucination_freq }}%</span><span class="stat-label">Hallucination Frequency</span></div>
+    </div>
+
+    <div class="chart-grid">
+        <div class="chart-box">
+            <h3>Verdict Distribution</h3>
+            <canvas id="verdictChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h3>Average Dimension Scores</h3>
+            <canvas id="dimChart"></canvas>
+        </div>
+        <div class="chart-box chart-wide">
+            <h3>Quality Trend Over Time (Overall Score)</h3>
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const verdictData = {
+            labels: ['Pass', 'Needs Improvement', 'Fail'],
+            datasets: [{
+                data: [{{ stats.pass_count }}, {{ stats.needs_count }}, {{ stats.fail_count }}],
+                backgroundColor: ['#16a34a', '#d97706', '#dc2626']
+            }]
+        };
+        new Chart(document.getElementById('verdictChart'), {
+            type: 'pie', data: verdictData,
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        new Chart(document.getElementById('dimChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Relevance', 'Accuracy', 'Completeness', 'Hallucination'],
+                datasets: [{
+                    label: 'Average score',
+                    data: [{{ stats.avg_relevance }}, {{ stats.avg_accuracy }}, {{ stats.avg_completeness }}, {{ stats.avg_hallucination }}],
+                    backgroundColor: '#4f46e5'
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true, max: 10 } }, plugins: { legend: { display: false } } }
+        });
+
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: {{ stats.trend_labels | tojson }},
+                datasets: [{
+                    label: 'Overall score',
+                    data: {{ stats.trend_scores | tojson }},
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79,70,229,0.1)',
+                    tension: 0.3, fill: true
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true, max: 10 } }, plugins: { legend: { display: false } } }
+        });
+        // Make the PDF button carry the current filter query string.
+        const rb = document.getElementById('reportBtn');
+        if (rb) rb.href = '/report' + window.location.search;
+    </script>
+
+    {% endif %}
+</div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.env
+src/knowledge_base/*.index
+src/knowledge_base/*.pkl
+src/validation/reports/*.txt
+!src/validation/reports/.gitkeep
+.vscode/*.log
+src/backend/evaluations.db
+test_report.pdf
+test_batch.csv
+comparison_gemini.csv
+comparison_copilot.csv
+validation_run.txt

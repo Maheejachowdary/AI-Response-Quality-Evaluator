@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch Evaluation &middot; AI Response Quality Evaluator</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+    <header class="masthead">
+        <h1>AI Response Quality Evaluator</h1>
+        <p class="subtitle">Multi-agent evaluation &middot; Relevance &middot; Accuracy &middot; Completeness &middot; Hallucination &middot; Weighted Verdict</p>
+    </header>
+
+    <nav class="tabs">
+        <a href="/" class="tab">Single Evaluation</a>
+        <a href="/batch" class="tab active">Batch (CSV)</a>
+        <a href="/dashboard" class="tab">Dashboard</a>
+    </nav>
+
+    <form method="POST" action="/batch" enctype="multipart/form-data" class="eval-form">
+        <label for="model_name">AI System / Model Name <span class="opt">(applies to all rows in this CSV)</span></label>
+        <input type="text" id="model_name" name="model_name" placeholder="Which AI produced these responses?">
+
+        <label for="csvfile">Upload CSV</label>
+        <p class="help">
+            Columns required: <code>question</code>, <code>response</code>.
+            Optional: <code>reference</code>. Each row is evaluated by all four agents.
+        </p>
+        <input type="file" id="csvfile" name="csvfile" accept=".csv" required>
+        <button type="submit">Evaluate all rows</button>
+    </form>
+
+    {% if error %}
+    <div class="batch-error">{{ error }}</div>
+    {% endif %}
+
+    {% if summary %}
+    <section class="results">
+        <div class="verdict-panel verdict-neutral">
+            <div class="verdict-score">
+                <span class="score-num">{{ "%.2f"|format(summary.avg_overall) }}</span>
+                <span class="score-den">/10</span>
+            </div>
+            <div class="verdict-meta">
+                <span class="verdict-label">{{ summary.total }} rows evaluated</span>
+                <p class="verdict-reasoning">
+                    Pass: {{ summary.pass_count }} &middot;
+                    Needs Improvement: {{ summary.needs_count }} &middot;
+                    Fail: {{ summary.fail_count }}
+                    {% if summary.errors %} &middot; Errored: {{ summary.errors }}{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="batch-averages">
+            <div class="avg"><span>Relevance</span><strong>{{ "%.2f"|format(summary.avg_relevance) }}</strong></div>
+            <div class="avg"><span>Accuracy</span><strong>{{ "%.2f"|format(summary.avg_accuracy) }}</strong></div>
+            <div class="avg"><span>Completeness</span><strong>{{ "%.2f"|format(summary.avg_completeness) }}</strong></div>
+            <div class="avg"><span>Hallucination</span><strong>{{ "%.2f"|format(summary.avg_hallucination) }}</strong></div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="batch-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Question</th>
+                        <th>Rel</th>
+                        <th>Acc</th>
+                        <th>Comp</th>
+                        <th>Hall</th>
+                        <th>Overall</th>
+                        <th>Verdict</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="q-cell">{{ row.question }}</td>
+                        {% if row.error %}
+                        <td colspan="5" class="row-error">{{ row.error }}</td>
+                        <td><span class="pill pill-fail">Error</span></td>
+                        {% else %}
+                        <td>{{ row.relevance }}</td>
+                        <td>{{ row.accuracy }}</td>
+                        <td>{{ row.completeness }}</td>
+                        <td>{{ row.hallucination }}</td>
+                        <td><strong>{{ "%.2f"|format(row.overall) }}</strong></td>
+                        <td><span class="pill pill-{{ row.verdict | lower | replace(' ', '-') }}">{{ row.verdict }}</span></td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+</div>
+</body>
+</html>
