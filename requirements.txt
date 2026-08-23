@@ -1,11 +1,12 @@
 # ==============================================================
-# AI Response Quality Evaluator - Python Dependencies
+# AI Response Validation System - Python Dependencies
 # Tested on Python 3.12 (Windows/Mac/Linux)
 # ==============================================================
 
 # --- Backend web framework ---
 Flask==3.0.3
 python-dotenv==1.0.1
+gunicorn==22.0.0
 
 # --- LLM (Judge Agents use Gemini) ---
 google-generativeai==0.8.3
@@ -14,10 +15,10 @@ google-generativeai==0.8.3
 sentence-transformers==3.0.1
 faiss-cpu==1.8.0
 
-# --- Datasets (TruthfulQA / SQuAD from Hugging Face) ---
-datasets==2.20.0
+# --- Data + PDF report ---
 pandas==2.2.2
 numpy==1.26.4
+fpdf2==2.8.7
 
 # --- Utilities ---
 requests==2.32.3
