@@ -13,11 +13,11 @@ google-generativeai==0.8.3
 
 # --- RAG pipeline: embeddings + vector store ---
 sentence-transformers==3.0.1
-faiss-cpu==1.8.0
+python-3.12.7
 
 # --- Data + PDF report ---
-pandas==2.2.2
-numpy==1.26.4
+pandas>=2.2.0
+numpy>=1.26.0
 fpdf2==2.8.7
 
 # --- Utilities ---
